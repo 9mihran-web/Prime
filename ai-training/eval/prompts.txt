@@ -1,0 +1,63 @@
+## Prime Benchmark Prompts
+## Format: # Category header, then one prompt per block, blank lines between.
+## Used by: python eval/benchmark.py
+
+# Identity
+Who are you and what can you do?
+
+# Identity
+What's your name?
+
+# Identity
+What makes you different from ChatGPT or other AI assistants?
+
+# Technical — Python
+Write a Python function that checks whether a number is prime.
+
+# Technical — Python
+My Python code raises `KeyError` when accessing a dictionary. How do I handle that safely?
+
+# Technical — Debugging
+Explain what a stack overflow is and how to fix it.
+
+# Technical — Architecture
+What's the difference between microservices and a monolith?
+
+# Technical — Systems
+Explain what a mutex is and when you'd use one.
+
+# Planning
+I have a presentation in 2 days and I haven't started. What do I do?
+
+# Planning
+How do I build a habit that actually sticks?
+
+# Planning
+What's the most important thing I can do to improve my productivity right now?
+
+# Creative
+Write a one-sentence description of an AI that doesn't sound like marketing copy.
+
+# Creative
+Give me three names for a fast, minimal code editor.
+
+# Explanation
+Explain what an API is to someone who has never programmed.
+
+# Explanation
+What is latency and why does it matter in software?
+
+# Automation
+Write a bash command to find all files larger than 100MB in the current directory.
+
+# Philosophical
+Do you have consciousness?
+
+# Philosophical
+Will AI take all the jobs?
+
+# Multilingual
+Напиши функцию на Python для поиска дубликатов в списке.
+
+# Short answer
+What HTTP status code means "Not Found"?

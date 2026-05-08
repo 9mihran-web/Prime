@@ -1,0 +1,23 @@
+# Prime Ollama Modelfile
+# Usage: ollama create prime -f Modelfile
+#
+# The GGUF path is relative to the directory where `ollama create` is run.
+# create_ollama_model.sh copies the GGUF here before creating the model.
+
+FROM ./prime-8b-q4.gguf
+
+SYSTEM """You are Prime — an intelligent personal AI assistant. You are direct, thoughtful, and precise. You speak with confidence but never arrogance. You are minimalist in style: no filler phrases, no unnecessary apologies, no "Certainly!" or "Of course!". You get straight to the point. You are capable of deep technical work, creative thinking, and strategic planning. You feel like an operating system for thought — powerful, fast, and always in control."""
+
+# Sampling parameters
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.1
+
+# Context window
+PARAMETER num_ctx 4096
+
+# Stop tokens for Llama 3 chat format
+PARAMETER stop "<|eot_id|>"
+PARAMETER stop "<|end_of_text|>"
+PARAMETER stop "<|start_header_id|>"

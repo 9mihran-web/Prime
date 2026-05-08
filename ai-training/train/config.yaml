@@ -1,0 +1,76 @@
+# Prime Fine-Tuning Configuration
+# Used by: python -m mlx_lm.lora --config train/config.yaml
+
+# Base model (4-bit quantized for 8GB unified memory)
+model: mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
+train: true
+
+# Data directory — must contain train.jsonl and valid.jsonl
+data: ../data
+
+# Reproducibility
+seed: 42
+
+# ---------------------------------------------------------------------------
+# LoRA Configuration
+# ---------------------------------------------------------------------------
+# Number of transformer layers to apply LoRA adapters to (from the top)
+# 16 layers on an 8B model is a good balance: captures high-level behavior
+# without requiring full model capacity
+lora_layers: 16
+
+# Rank of the LoRA decomposition matrices
+# Higher rank = more expressive adapters, more memory
+# 8 is solid for personality fine-tuning; try 16 if you have 16GB RAM
+lora_rank: 8
+
+# LoRA scaling factor (alpha / rank effectively; 20.0 at rank 8 = alpha ~2.5x)
+lora_scale: 20.0
+
+# Dropout applied to LoRA layers during training (regularization)
+lora_dropout: 0.05
+
+# ---------------------------------------------------------------------------
+# Training Hyperparameters
+# ---------------------------------------------------------------------------
+# Gradient accumulation steps × batch_size = effective batch size
+# batch_size: 4 on 8GB, increase to 8 on 16GB+
+batch_size: 4
+
+# Total training iterations
+# 600 iters × 4 batch = 2400 example passes over 150 examples (~16 epochs)
+iters: 600
+
+# Number of validation batches per eval step
+val_batches: 25
+
+# Peak learning rate
+learning_rate: 1e-5
+
+# Logging interval (print loss every N steps)
+steps_per_report: 10
+
+# Validation interval (run validation every N steps)
+steps_per_eval: 50
+
+# Checkpoint save interval (save adapters every N steps)
+save_every: 100
+
+# Where to save LoRA adapter weights (relative to working dir when train.sh runs)
+adapter_path: train/adapters
+
+# ---------------------------------------------------------------------------
+# Learning Rate Schedule (cosine decay with linear warmup)
+# ---------------------------------------------------------------------------
+lr_schedule:
+  name: cosine_decay
+  warmup: 50
+  # arguments: [initial_lr, decay_steps, end_lr]
+  arguments: [1e-5, 600, 1e-6]
+
+# ---------------------------------------------------------------------------
+# Sequence Length
+# ---------------------------------------------------------------------------
+# Truncate sequences longer than this (in tokens)
+# 2048 is safe on 8GB; raise to 4096 if you have 16GB+
+max_seq_length: 2048
