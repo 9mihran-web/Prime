@@ -49,7 +49,7 @@ class ConversationRead(BaseModel):
     updated_at: datetime
     messages: List[MessageRead] = []
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "protected_namespaces": ()}
 
 
 class ConversationSummary(BaseModel):
@@ -63,7 +63,7 @@ class ConversationSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "protected_namespaces": ()}
 
 
 # ---------------------------------------------------------------------------

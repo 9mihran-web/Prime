@@ -159,6 +159,7 @@ async def get_conversation(
 @router.delete(
     "/conversations/{conversation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     summary="Archive a conversation",
 )
 async def archive_conversation(
