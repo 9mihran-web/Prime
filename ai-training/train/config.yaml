@@ -35,10 +35,10 @@ lora_dropout: 0.05
 # ---------------------------------------------------------------------------
 # Gradient accumulation steps × batch_size = effective batch size
 # batch_size: 4 on 8GB, increase to 8 on 16GB+
-batch_size: 4
+batch_size: 2
 
 # Total training iterations
-# 600 iters × 4 batch = 2400 example passes over 150 examples (~16 epochs)
+# 600 iters × 2 batch = 1200 example passes over 150 examples (~8 epochs)
 iters: 600
 
 # Number of validation batches per eval step
@@ -73,4 +73,4 @@ lr_schedule:
 # ---------------------------------------------------------------------------
 # Truncate sequences longer than this (in tokens)
 # 2048 is safe on 8GB; raise to 4096 if you have 16GB+
-max_seq_length: 2048
+max_seq_length: 1024
