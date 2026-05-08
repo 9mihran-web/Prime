@@ -1,0 +1,257 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+# Cancel in-progress runs for the same branch to avoid wasting minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Shared across jobs
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Frontend — lint
+  # ---------------------------------------------------------------------------
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --frozen-lockfile
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type-check
+        run: npm run type-check
+
+  # ---------------------------------------------------------------------------
+  # Frontend — tests
+  # ---------------------------------------------------------------------------
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    needs: lint-frontend
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --frozen-lockfile
+
+      - name: Run tests (if test script exists)
+        # Some projects start without a test suite; this step is a no-op until
+        # Jest / Vitest is wired up.  `|| true` is intentionally omitted so
+        # that once tests are added any failure is surfaced.
+        run: |
+          if npm run --silent 2>&1 | grep -q 'test'; then
+            npm test -- --passWithNoTests --forceExit
+          else
+            echo "No test script found – skipping"
+          fi
+
+      - name: Build Next.js (smoke-test)
+        env:
+          # Stub required env vars so the build doesn't fail in CI
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_PUBLIC_WS_URL: ws://localhost:8000
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Backend — lint & type-check
+  # ---------------------------------------------------------------------------
+  lint-backend:
+    name: Lint Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Install lint tools
+        run: pip install ruff mypy
+
+      - name: Install type stubs & project deps (for mypy)
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Run ruff (linter + formatter check)
+        run: |
+          ruff check app/
+          ruff format --check app/
+
+      - name: Run mypy (static type analysis)
+        run: mypy app/ --ignore-missing-imports --strict-optional
+
+  # ---------------------------------------------------------------------------
+  # Backend — tests
+  # ---------------------------------------------------------------------------
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    needs: lint-backend
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: prime_test_db
+          POSTGRES_USER: prime_user
+          POSTGRES_PASSWORD: prime_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prime_user -d prime_test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://prime_user:prime_password@localhost:5432/prime_test_db
+      REDIS_URL: redis://localhost:6379/0
+      SECRET_KEY: ci-test-secret-key-not-for-production-use-only
+      OPENAI_API_KEY: sk-test-placeholder-not-real
+      ENVIRONMENT: test
+      DEBUG: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run database migrations
+        run: |
+          if [ -f alembic.ini ]; then
+            alembic upgrade head
+          else
+            echo "No alembic.ini found – skipping migrations"
+          fi
+
+      - name: Run tests with coverage
+        run: |
+          pytest \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
+            -v \
+            --tb=short \
+            tests/ \
+            || ([ ! -d tests ] && echo "No tests directory found – skipping" || exit 1)
+
+      - name: Upload coverage report
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Status gate — all jobs must pass before merging
+  # ---------------------------------------------------------------------------
+  ci-success:
+    name: CI Passed
+    runs-on: ubuntu-latest
+    needs:
+      - lint-frontend
+      - test-frontend
+      - lint-backend
+      - test-backend
+    if: always()
+
+    steps:
+      - name: Check all jobs succeeded
+        run: |
+          if [[ "${{ needs.lint-frontend.result }}" != "success" ]]; then
+            echo "lint-frontend failed" && exit 1
+          fi
+          if [[ "${{ needs.test-frontend.result }}" != "success" ]]; then
+            echo "test-frontend failed" && exit 1
+          fi
+          if [[ "${{ needs.lint-backend.result }}" != "success" ]]; then
+            echo "lint-backend failed" && exit 1
+          fi
+          if [[ "${{ needs.test-backend.result }}" != "success" ]]; then
+            echo "test-backend failed" && exit 1
+          fi
+          echo "All CI jobs passed."

@@ -1,0 +1,301 @@
+# =============================================================================
+# PRIME — .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Node.js / Next.js
+# -----------------------------------------------------------------------------
+node_modules/
+.npm
+.yarn/
+.pnp
+.pnp.js
+.yarn-integrity
+
+# Next.js build output
+.next/
+out/
+dist/
+build/
+.cache/
+
+# Next.js standalone output
+.next/standalone
+.next/cache
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# ESLint / Prettier cache
+.eslintcache
+.prettierignore
+
+# Storybook
+storybook-static/
+
+# Playwright / Cypress test artifacts
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+
+# Bundle analysis
+.bundle-analyzer/
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+pip-wheel-metadata/
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+*.whl
+lib/
+lib64/
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+coverage/
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+junit.xml
+
+# mypy / ruff / pylint caches
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pylint.d/
+
+# IPython / Jupyter
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# PEP 582 local packages
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# -----------------------------------------------------------------------------
+# Environment & Secrets
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Specific secret files
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+secrets/
+credentials/
+
+# -----------------------------------------------------------------------------
+# IDE & Editor
+# -----------------------------------------------------------------------------
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# JetBrains (PyCharm, WebStorm, IntelliJ)
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Eclipse
+.classpath
+.project
+.settings/
+.loadpath
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# -----------------------------------------------------------------------------
+# Operating System
+# -----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network\ Trash\ Folder
+Temporary\ Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+# Local volume data (if accidentally mounted inside repo)
+postgres_data/
+redis_data/
+docker-volumes/
+
+# Override files with local secrets (keep docker-compose.yml itself)
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.prod.yml
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+*.log
+*.log.*
+logs/
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# -----------------------------------------------------------------------------
+# Miscellaneous
+# -----------------------------------------------------------------------------
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+*.patch
+
+# Compiled binaries
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.a
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# SQLite local databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Alembic
+# (keep alembic/versions/ tracked, but ignore local migration scratchpads)
+alembic_temp/
+
+# Terraform (if added later)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraformignore
+
+# AWS credentials / SAM
+.aws/
+samconfig.toml
