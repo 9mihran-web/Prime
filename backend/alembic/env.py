@@ -9,7 +9,7 @@ from pathlib import Path
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 # ---------------------------------------------------------------------------
 # Make the app importable from alembic/
@@ -90,13 +90,8 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Create an async engine and run migrations inside a sync wrapper."""
-    # Build an async engine from the alembic config
-    # Restore the asyncpg driver for the actual connection
-    async_url = settings.DATABASE_URL  # already has +asyncpg
-
-    connectable = async_engine_from_config(
-        {"sqlalchemy.url": async_url, **dict(config.get_section(config.config_ini_section) or {})},
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        settings.DATABASE_URL,
         poolclass=pool.NullPool,
     )
 
