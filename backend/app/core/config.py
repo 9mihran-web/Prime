@@ -45,9 +45,25 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # ------------------------------------------------------------------ #
-    # OpenAI
+    # AI provider selection
     # ------------------------------------------------------------------ #
-    OPENAI_API_KEY: str = Field(default="sk-placeholder")
+    # "ollama"  — always use Ollama (local)
+    # "openai"  — always use OpenAI (cloud)
+    # "auto"    — prefer Ollama, fall back to OpenAI when Ollama is down
+    AI_PROVIDER: str = "ollama"
+    DEFAULT_MODEL: str = "prime"
+
+    # ------------------------------------------------------------------ #
+    # Ollama (local models — no API key required)
+    # ------------------------------------------------------------------ #
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "prime"
+    OLLAMA_EMBED_MODEL: str = "nomic-embed-text"
+
+    # ------------------------------------------------------------------ #
+    # OpenAI (optional cloud fallback)
+    # ------------------------------------------------------------------ #
+    OPENAI_API_KEY: str = Field(default="")
     OPENAI_MODEL: str = "gpt-4o"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     OPENAI_TTS_MODEL: str = "tts-1"

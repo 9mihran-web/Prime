@@ -24,7 +24,7 @@ from app.schemas.chat import (
     MessageRead,
     StreamChunk,
 )
-from app.services.ai.openai_service import openai_service
+from app.services.ai.model_router import model_router
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ async def create_conversation(
     conv = Conversation(
         user_id=current_user.id,
         title=payload.title or "New Conversation",
-        model_used=payload.model or settings.OPENAI_MODEL,
+        model_used=payload.model or settings.DEFAULT_MODEL,
     )
     db.add(conv)
     await db.flush()
@@ -195,7 +195,7 @@ async def send_message(
     :class:`~app.schemas.chat.ChatResponse` JSON object.
     """
     conv = await _get_conversation_or_404(conversation_id, current_user.id, db)
-    model = payload.model or conv.model_used or settings.OPENAI_MODEL
+    model = payload.model or conv.model_used or settings.DEFAULT_MODEL
 
     # Persist the user message
     user_msg = Message(
@@ -232,15 +232,15 @@ async def send_message(
 
     # --- Non-streaming path ---
     try:
-        full_response = await openai_service.chat_completion(
+        full_response = await model_router.chat(
             messages=openai_messages,
             model=model,
             stream=False,
             temperature=payload.temperature,
-            max_tokens=payload.max_tokens,
+            max_tokens=payload.max_tokens or 2048,
         )
     except Exception as exc:
-        logger.exception("OpenAI chat_completion failed")
+        logger.exception("AI chat_completion failed")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"AI service error: {exc}",
@@ -279,12 +279,12 @@ async def _stream_response(
     """Async generator yielding SSE-compatible dicts for EventSourceResponse."""
     full_content = ""
     try:
-        generator = await openai_service.chat_completion(
+        generator = await model_router.chat(
             messages=openai_messages,
             model=model,
             stream=True,
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_tokens=max_tokens or 2048,
         )
         async for delta in generator:
             full_content += delta
@@ -292,7 +292,7 @@ async def _stream_response(
             yield {"data": chunk.model_dump_json()}
 
     except Exception as exc:
-        logger.exception("Streaming chat_completion failed")
+        logger.exception("AI streaming chat_completion failed")
         error_chunk = StreamChunk(event="error", error=str(exc))
         yield {"data": error_chunk.model_dump_json()}
         return
