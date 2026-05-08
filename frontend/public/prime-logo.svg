@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="prime-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#6d46f5"/>
+      <stop offset="50%"  stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="48" height="48" rx="12" fill="url(#prime-grad)"/>
+  <!-- Star/spark mark -->
+  <path
+    d="M24 8 L27 19 L38 19 L29.5 25.5 L32.5 37 L24 30.5 L15.5 37 L18.5 25.5 L10 19 L21 19 Z"
+    fill="white"
+    filter="url(#glow)"
+    opacity="0.95"
+  />
+</svg>
