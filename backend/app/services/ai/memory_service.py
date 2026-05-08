@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 import logging
 import math
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from app.services.ai.openai_service import openai_service
+from app.services.ai.model_router import model_router
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +53,11 @@ class MemoryEntry:
 class MemoryService:
     """Vector-based memory store for PRIME.
 
-    Memories are embedded via OpenAI and stored in an in-process dict keyed
-    by ``user_id``.  For production replace the ``_store`` dict with a
-    pgvector table or Pinecone index — the public API contract stays the same.
+    Memories are embedded via :class:`ModelRouter` (Ollama by default, with an
+    automatic fallback to OpenAI when Ollama is unavailable) and stored in an
+    in-process dict keyed by ``user_id``.  For production replace the
+    ``_store`` dict with a pgvector table or Pinecone index — the public API
+    contract stays the same.
     """
 
     def __init__(self) -> None:
@@ -84,7 +85,7 @@ class MemoryService:
             Serialised :class:`MemoryEntry` dict (without the embedding).
         """
         try:
-            embedding = await openai_service.embed_text(content)
+            embedding = await model_router.embed(content)
         except Exception as exc:
             logger.warning("Embedding failed, storing memory without vector: %s", exc)
             embedding = []
@@ -133,7 +134,7 @@ class MemoryService:
             return []
 
         try:
-            query_vec = await openai_service.embed_text(query)
+            query_vec = await model_router.embed(query)
         except Exception as exc:
             logger.warning("Query embedding failed, falling back to keyword search: %s", exc)
             # Simple substring fallback
