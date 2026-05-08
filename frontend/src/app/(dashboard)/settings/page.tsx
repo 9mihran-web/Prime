@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
+import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
@@ -309,5 +310,3 @@ function Toggle({ defaultChecked = false }: { defaultChecked?: boolean }) {
   )
 }
 
-// Badge import (used in API Keys section)
-import { Badge } from '@/components/ui/Badge'
