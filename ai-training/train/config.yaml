@@ -6,7 +6,7 @@ model: mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
 train: true
 
 # Data directory — must contain train.jsonl and valid.jsonl
-data: ../data
+data: data
 
 # Reproducibility
 seed: 42

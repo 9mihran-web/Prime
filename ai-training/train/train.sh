@@ -67,7 +67,7 @@ echo "Log file: train/training.log"
 echo ""
 
 # Run LoRA fine-tuning via mlx-lm
-python -m mlx_lm.lora \
+python -m mlx_lm lora \
   --config train/config.yaml \
   2>&1 | tee train/training.log
 
