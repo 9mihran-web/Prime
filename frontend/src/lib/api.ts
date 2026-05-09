@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { getStoredToken, clearTokens } from './auth'
 import type {
-  AuthResponse,
+  BackendTokenResponse,
   LoginRequest,
   RegisterRequest,
   User,
@@ -53,11 +53,11 @@ apiClient.interceptors.response.use(
 // ─── Auth API ───────────────────────────────────────────────────────────────
 
 const auth = {
-  login: (data: LoginRequest): Promise<AxiosResponse<AuthResponse>> =>
-    apiClient.post<AuthResponse>('/auth/login', data),
+  login: (data: LoginRequest): Promise<AxiosResponse<BackendTokenResponse>> =>
+    apiClient.post<BackendTokenResponse>('/auth/login', data),
 
-  register: (data: RegisterRequest): Promise<AxiosResponse<AuthResponse>> =>
-    apiClient.post<AuthResponse>('/auth/register', data),
+  register: (data: RegisterRequest): Promise<AxiosResponse<BackendTokenResponse>> =>
+    apiClient.post<BackendTokenResponse>('/auth/register', data),
 
   logout: (): Promise<AxiosResponse<void>> =>
     apiClient.post('/auth/logout'),
@@ -65,8 +65,8 @@ const auth = {
   me: (): Promise<AxiosResponse<User>> =>
     apiClient.get<User>('/auth/me'),
 
-  refreshToken: (refreshToken: string): Promise<AxiosResponse<AuthResponse>> =>
-    apiClient.post<AuthResponse>('/auth/refresh', { refreshToken }),
+  refreshToken: (refreshToken: string): Promise<AxiosResponse<BackendTokenResponse>> =>
+    apiClient.post<BackendTokenResponse>('/auth/refresh', { refresh_token: refreshToken }),
 }
 
 // ─── Chat API ────────────────────────────────────────────────────────────────

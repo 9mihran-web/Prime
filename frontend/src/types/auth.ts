@@ -36,3 +36,11 @@ export interface AuthError {
   field?: string
   code?: string
 }
+
+// Matches the backend's actual snake_case token response
+export interface BackendTokenResponse {
+  access_token: string
+  refresh_token?: string
+  token_type: string
+  expires_in?: number
+}
