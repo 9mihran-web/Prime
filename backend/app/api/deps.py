@@ -36,6 +36,8 @@ async def get_redis() -> aioredis.Redis:
             settings.REDIS_URL,
             encoding="utf-8",
             decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2,
         )
     return _redis_client
 
@@ -70,15 +72,20 @@ async def _load_user_from_token(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
-    # Check token blacklist (logout)
-    redis = await get_redis()
-    blacklisted = await redis.get(f"blacklist:{token}")
-    if blacklisted:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # Check token blacklist — skip gracefully if Redis is unavailable
+    try:
+        redis = await get_redis()
+        blacklisted = await redis.get(f"blacklist:{token}")
+        if blacklisted:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # Redis down — token revocation unavailable, continue
 
     result = await db.execute(
         select(User).where(User.id == UUID(token_data.user_id))
