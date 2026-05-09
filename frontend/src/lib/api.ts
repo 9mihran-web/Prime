@@ -174,21 +174,25 @@ export async function streamChatMessage(
   onError: (err: Error) => void
 ): Promise<void> {
   const token = getStoredToken()
-  const controller = new AbortController()
+  const { conversationId, content, model, stream } = data
 
   try {
-    const response = await fetch(`${API_BASE}/api/v1/messages/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ ...data, stream: true }),
-      signal: controller.signal,
-    })
+    const response = await fetch(
+      `${API_BASE}/api/v1/chat/conversations/${conversationId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        // Backend ChatRequest uses "message" not "content"
+        body: JSON.stringify({ message: content, model, stream: stream ?? true }),
+      }
+    )
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      const errText = await response.text().catch(() => response.statusText)
+      throw new Error(`HTTP ${response.status}: ${errText}`)
     }
 
     const reader = response.body?.getReader()
@@ -209,24 +213,26 @@ export async function streamChatMessage(
         const trimmed = line.trim()
         if (!trimmed || trimmed.startsWith(':')) continue
         if (trimmed.startsWith('data: ')) {
-          const data = trimmed.slice(6)
-          if (data === '[DONE]') {
-            onDone()
-            return
-          }
+          const raw = trimmed.slice(6)
           try {
-            const parsed = JSON.parse(data) as {
-              choices?: Array<{ delta?: { content?: string } }>
+            // Backend sends StreamChunk: { event, delta?, message?, error?, tokens? }
+            const chunk = JSON.parse(raw) as {
+              event: string
+              delta?: string
               error?: string
+              tokens?: number
             }
-            if (parsed.error) {
-              onError(new Error(parsed.error))
+            if (chunk.event === 'delta' && chunk.delta) {
+              onDelta(chunk.delta)
+            } else if (chunk.event === 'done') {
+              onDone()
+              return
+            } else if (chunk.event === 'error') {
+              onError(new Error(chunk.error ?? 'Stream error'))
               return
             }
-            const delta = parsed.choices?.[0]?.delta?.content ?? ''
-            if (delta) onDelta(delta)
           } catch {
-            // Skip malformed JSON lines
+            // Skip malformed lines
           }
         }
       }
