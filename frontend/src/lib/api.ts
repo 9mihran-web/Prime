@@ -76,29 +76,32 @@ const chat = {
     page = 1,
     pageSize = 20
   ): Promise<AxiosResponse<ConversationsResponse>> =>
-    apiClient.get<ConversationsResponse>('/conversations', {
-      params: { page, pageSize },
+    apiClient.get<ConversationsResponse>('/chat/conversations', {
+      params: { limit: pageSize, offset: (page - 1) * pageSize },
     }),
 
   getConversation: (id: string): Promise<AxiosResponse<Conversation>> =>
-    apiClient.get<Conversation>(`/conversations/${id}`),
+    apiClient.get<Conversation>(`/chat/conversations/${id}`),
 
   createConversation: (model: ModelId): Promise<AxiosResponse<Conversation>> =>
-    apiClient.post<Conversation>('/conversations', { model }),
+    apiClient.post<Conversation>('/chat/conversations', { model }),
 
   deleteConversation: (id: string): Promise<AxiosResponse<void>> =>
-    apiClient.delete(`/conversations/${id}`),
+    apiClient.delete(`/chat/conversations/${id}`),
 
   sendMessage: (
     data: SendMessageRequest
   ): Promise<AxiosResponse<SendMessageResponse>> =>
-    apiClient.post<SendMessageResponse>('/messages', data),
+    apiClient.post<SendMessageResponse>(
+      `/chat/conversations/${data.conversationId}/messages`,
+      data
+    ),
 
   getMessages: (conversationId: string) =>
-    apiClient.get(`/conversations/${conversationId}/messages`),
+    apiClient.get(`/chat/conversations/${conversationId}`),
 
   streamUrl: (conversationId: string): string =>
-    `${API_BASE}/api/v1/conversations/${conversationId}/stream`,
+    `${API_BASE}/api/v1/chat/conversations/${conversationId}/messages`,
 }
 
 // ─── Voice API ───────────────────────────────────────────────────────────────

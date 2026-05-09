@@ -11,7 +11,6 @@ interface AuthResult {
   error?: string
 }
 
-// Backend returns snake_case; map to our camelCase User type
 function mapBackendUser(raw: Record<string, unknown>): User {
   return {
     id:          String(raw.id),
@@ -36,11 +35,19 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 }
 
 export function useAuth() {
-  const store = useAuthStore()
+  // Use individual selectors so callbacks don't re-create on unrelated state changes
+  const user            = useAuthStore((s) => s.user)
+  const token           = useAuthStore((s) => s.token)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isLoading       = useAuthStore((s) => s.isLoading)
+  const setUser         = useAuthStore((s) => s.setUser)
+  const setToken        = useAuthStore((s) => s.setToken)
+  const setLoading      = useAuthStore((s) => s.setLoading)
+  const logoutStore     = useAuthStore((s) => s.logout)
 
   const login = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
-      store.setLoading(true)
+      setLoading(true)
       try {
         const res = await authApi.login({ email, password })
         const raw: BackendTokenResponse = res.data
@@ -51,25 +58,22 @@ export function useAuth() {
           expiresIn:    raw.expires_in,
         }
         storeTokens(tokens)
-        store.setToken(tokens.accessToken)
-
-        // Fetch user profile with the new token
+        setToken(tokens.accessToken)
         const meRes = await authApi.me()
-        store.setUser(mapBackendUser(meRes.data))
-
+        setUser(mapBackendUser(meRes.data as Record<string, unknown>))
         return { success: true }
       } catch (err: unknown) {
         return { success: false, error: extractErrorMessage(err, 'Login failed. Please check your credentials.') }
       } finally {
-        store.setLoading(false)
+        setLoading(false)
       }
     },
-    [store]
+    [setLoading, setToken, setUser]
   )
 
   const register = useCallback(
     async (email: string, password: string, username: string): Promise<AuthResult> => {
-      store.setLoading(true)
+      setLoading(true)
       try {
         const res = await authApi.register({ email, password, username })
         const raw: BackendTokenResponse = res.data
@@ -80,50 +84,47 @@ export function useAuth() {
           expiresIn:    raw.expires_in,
         }
         storeTokens(tokens)
-        store.setToken(tokens.accessToken)
-
-        // Fetch user profile with the new token
+        setToken(tokens.accessToken)
         const meRes = await authApi.me()
-        store.setUser(mapBackendUser(meRes.data))
-
+        setUser(mapBackendUser(meRes.data as Record<string, unknown>))
         return { success: true }
       } catch (err: unknown) {
         return { success: false, error: extractErrorMessage(err, 'Registration failed. Please try again.') }
       } finally {
-        store.setLoading(false)
+        setLoading(false)
       }
     },
-    [store]
+    [setLoading, setToken, setUser]
   )
 
   const logout = useCallback(async () => {
     try {
       await authApi.logout()
     } catch {
-      // Ignore logout errors — clear local state regardless
+      // ignore
     } finally {
-      store.logout()
+      logoutStore()
     }
-  }, [store])
+  }, [logoutStore])
 
   const checkAuth = useCallback(async () => {
-    if (!store.token) return
-    store.setLoading(true)
+    if (!token) return
+    setLoading(true)
     try {
       const meRes = await authApi.me()
-      store.setUser(mapBackendUser(meRes.data))
+      setUser(mapBackendUser(meRes.data as Record<string, unknown>))
     } catch {
-      store.logout()
+      logoutStore()
     } finally {
-      store.setLoading(false)
+      setLoading(false)
     }
-  }, [store])
+  }, [token, setLoading, setUser, logoutStore])
 
   return {
-    user:            store.user,
-    token:           store.token,
-    isAuthenticated: store.isAuthenticated,
-    isLoading:       store.isLoading,
+    user,
+    token,
+    isAuthenticated,
+    isLoading,
     login,
     register,
     logout,
