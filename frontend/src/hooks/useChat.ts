@@ -6,71 +6,102 @@ import { chat as chatApi, streamChatMessage } from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import type { ModelId, Conversation, Message } from '@/types/chat'
 
-export function useChat() {
-  const store = useChatStore()
+// Individual selectors to avoid re-creating callbacks on unrelated state changes
+const useSetConversations  = () => useChatStore((s) => s.setConversations)
+const useAddConversation   = () => useChatStore((s) => s.addConversation)
+const useRemoveConversation = () => useChatStore((s) => s.removeConversation)
+const useSetActiveId       = () => useChatStore((s) => s.setActiveConversationId)
+const useSetMessages       = () => useChatStore((s) => s.setMessages)
+const useAddMessage        = () => useChatStore((s) => s.addMessage)
+const useRemoveMessage     = () => useChatStore((s) => s.removeMessage)
+const useAppendToMessage   = () => useChatStore((s) => s.appendToMessage)
+const useUpdateStatus      = () => useChatStore((s) => s.updateMessageStatus)
+const useSetStreaming       = () => useChatStore((s) => s.setStreaming)
+const useSetLoadingMessages = () => useChatStore((s) => s.setLoadingMessages)
+const useUpdateLastMessage  = () => useChatStore((s) => s.updateConversationLastMessage)
 
-  // ── Load conversations list ──────────────────────────────────────────────
+export function useChat() {
+  const conversations     = useChatStore((s) => s.conversations)
+  const messages          = useChatStore((s) => s.messages)
+  const activeId          = useChatStore((s) => s.activeConversationId)
+  const isStreaming       = useChatStore((s) => s.isStreaming)
+  const isLoadingMessages = useChatStore((s) => s.isLoadingMessages)
+
+  const setConversations   = useSetConversations()
+  const addConversation    = useAddConversation()
+  const removeConversation = useRemoveConversation()
+  const setActiveId        = useSetActiveId()
+  const setMessages        = useSetMessages()
+  const addMessage         = useAddMessage()
+  const removeMessage      = useRemoveMessage()
+  const appendToMessage    = useAppendToMessage()
+  const updateStatus       = useUpdateStatus()
+  const setStreaming        = useSetStreaming()
+  const setLoadingMessages = useSetLoadingMessages()
+  const updateLastMessage  = useUpdateLastMessage()
+
   const loadConversations = useCallback(async () => {
     try {
       const res = await chatApi.getConversations()
-      store.setConversations(res.data.conversations)
+      // Backend returns a plain array, not { conversations: [] }
+      const list: Conversation[] = Array.isArray(res.data)
+        ? res.data
+        : ((res.data as { conversations?: Conversation[] }).conversations ?? [])
+      setConversations(list)
     } catch {
-      // Fail silently; user may not have any conversations yet
+      // Fail silently; user may have no conversations yet
     }
-  }, [store])
+  }, [setConversations])
 
-  // ── Load a single conversation's messages ────────────────────────────────
   const loadConversation = useCallback(
     async (conversationId: string) => {
-      store.setActiveConversationId(conversationId)
-      store.setLoadingMessages(true)
+      setActiveId(conversationId)
+      setLoadingMessages(true)
       try {
         const res = await chatApi.getMessages(conversationId)
-        const messages = (res.data as { messages?: Message[]; data?: Message[] })
-          .messages ?? (res.data as { data?: Message[] }).data ?? []
-        store.setMessages(messages)
+        // Backend returns ConversationRead with inline messages array
+        const data = res.data as { messages?: Message[] } | Message[]
+        const msgs: Message[] = Array.isArray(data)
+          ? data
+          : (data.messages ?? [])
+        setMessages(msgs)
       } catch {
-        store.setMessages([])
+        setMessages([])
       } finally {
-        store.setLoadingMessages(false)
+        setLoadingMessages(false)
       }
     },
-    [store]
+    [setActiveId, setLoadingMessages, setMessages]
   )
 
-  // ── Create a new conversation ────────────────────────────────────────────
   const createConversation = useCallback(
     async (model: ModelId): Promise<Conversation | null> => {
       try {
         const res = await chatApi.createConversation(model)
-        const conv = res.data
-        store.addConversation(conv)
+        const conv = res.data as Conversation
+        addConversation(conv)
         return conv
       } catch {
         return null
       }
     },
-    [store]
+    [addConversation]
   )
 
-  // ── Delete a conversation ────────────────────────────────────────────────
   const deleteConversation = useCallback(
     async (conversationId: string) => {
       try {
         await chatApi.deleteConversation(conversationId)
-        store.removeConversation(conversationId)
       } catch {
-        // Optimistic delete still removes from local state
-        store.removeConversation(conversationId)
+        // Optimistic — remove regardless
       }
+      removeConversation(conversationId)
     },
-    [store]
+    [removeConversation]
   )
 
-  // ── Send a message with streaming ────────────────────────────────────────
   const sendMessage = useCallback(
     async (content: string, model: ModelId, conversationId: string) => {
-      // 1. Optimistically add user message
       const userMessage: Message = {
         id:             generateId(),
         conversationId,
@@ -79,9 +110,8 @@ export function useChat() {
         status:         'sent',
         createdAt:      new Date().toISOString(),
       }
-      store.addMessage(userMessage)
+      addMessage(userMessage)
 
-      // 2. Add a placeholder AI message in streaming state
       const aiMessageId = generateId()
       const aiMessage: Message = {
         id:             aiMessageId,
@@ -92,69 +122,58 @@ export function useChat() {
         createdAt:      new Date().toISOString(),
         model,
       }
-      store.addMessage(aiMessage)
-      store.setStreaming(true)
+      addMessage(aiMessage)
+      setStreaming(true)
 
       try {
         await streamChatMessage(
           { conversationId, content, model, stream: true },
-          // onDelta
-          (delta) => {
-            store.appendToMessage(aiMessageId, delta)
-          },
-          // onDone
+          (delta) => { appendToMessage(aiMessageId, delta) },
           () => {
-            store.updateMessageStatus(aiMessageId, 'sent')
-            store.setStreaming(false)
-            // Update conversation's lastMessage preview
-            store.updateConversationLastMessage(conversationId, content)
+            updateStatus(aiMessageId, 'sent')
+            setStreaming(false)
+            updateLastMessage(conversationId, content)
           },
-          // onError
           (err) => {
             console.error('Streaming error:', err)
-            store.updateMessageStatus(aiMessageId, 'error')
-            store.appendToMessage(aiMessageId, '\n\n_An error occurred. Please try again._')
-            store.setStreaming(false)
+            updateStatus(aiMessageId, 'error')
+            appendToMessage(aiMessageId, '\n\n_An error occurred. Please try again._')
+            setStreaming(false)
           }
         )
       } catch (err) {
         console.error('sendMessage error:', err)
-        store.updateMessageStatus(aiMessageId, 'error')
-        store.setStreaming(false)
+        updateStatus(aiMessageId, 'error')
+        setStreaming(false)
       }
     },
-    [store]
+    [addMessage, setStreaming, appendToMessage, updateStatus, setStreaming, updateLastMessage]
   )
 
-  // ── Retry a failed message ────────────────────────────────────────────────
   const retryMessage = useCallback(
     async (messageId: string) => {
-      const messages = useChatStore.getState().messages
-      const failedMsg = messages.find((m) => m.id === messageId)
+      const msgs = useChatStore.getState().messages
+      const failedMsg = msgs.find((m) => m.id === messageId)
       if (!failedMsg) return
-
-      // Find the user message preceding this one
-      const idx     = messages.indexOf(failedMsg)
-      const userMsg = messages.slice(0, idx).reverse().find((m) => m.role === 'user')
+      const idx     = msgs.indexOf(failedMsg)
+      const userMsg = msgs.slice(0, idx).reverse().find((m) => m.role === 'user')
       if (!userMsg) return
-
-      // Remove the failed AI message and re-send
-      store.removeMessage(messageId)
+      removeMessage(messageId)
       await sendMessage(
         userMsg.content,
         (failedMsg.model ?? 'gpt-4o') as ModelId,
         failedMsg.conversationId
       )
     },
-    [store, sendMessage]
+    [removeMessage, sendMessage]
   )
 
   return {
-    conversations:     store.conversations,
-    messages:          store.messages,
-    activeId:          store.activeConversationId,
-    isStreaming:       store.isStreaming,
-    isLoadingMessages: store.isLoadingMessages,
+    conversations,
+    messages,
+    activeId,
+    isStreaming,
+    isLoadingMessages,
     loadConversations,
     loadConversation,
     createConversation,

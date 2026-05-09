@@ -40,7 +40,7 @@ export const useChatStore = create<ChatState>()(
       isLoadingMessages:    false,
       selectedModel:        'gpt-4o',
 
-      setConversations: (conversations) => set({ conversations }),
+      setConversations: (conversations) => set({ conversations: conversations ?? [] }),
 
       addConversation: (conversation) =>
         set((state) => ({
