@@ -64,9 +64,12 @@ var/
 sdist/
 wheels/
 *.whl
-lib/
-lib64/
+backend/lib/
+backend/lib64/
 MANIFEST
+
+# Allow frontend source lib directory
+!frontend/src/lib/
 
 # Virtual environments
 .venv/
