@@ -138,15 +138,22 @@ class ModelRouter:
         backend = self._resolve_backend(resolved_model)
 
         if backend == "ollama":
-            # In "auto" mode, check liveness first so we can fall back quickly
-            # rather than waiting for a connection timeout.
+            # If the resolved model is an OpenAI model name (e.g. stored in DB
+            # from an old conversation), override it with the configured Ollama model.
+            ollama_model = (
+                resolved_model
+                if resolved_model not in self.OPENAI_MODELS
+                else settings.OLLAMA_MODEL
+            )
+
+            # In "auto" mode, check liveness first so we can fall back quickly.
             if settings.AI_PROVIDER.lower() == "auto":
                 ollama_alive = await ollama_service.health_check()
                 if not ollama_alive:
                     if self._openai_available():
                         logger.warning(
                             "Ollama is unreachable — falling back to OpenAI for model '%s'.",
-                            resolved_model,
+                            ollama_model,
                         )
                         return await openai_service.chat_completion(
                             messages=messages,
@@ -162,7 +169,7 @@ class ModelRouter:
 
             return await ollama_service.chat_completion(
                 messages=messages,
-                model=resolved_model,
+                model=ollama_model,
                 stream=stream,
                 temperature=temperature,
                 max_tokens=max_tokens,
