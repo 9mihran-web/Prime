@@ -119,7 +119,17 @@ async def create_conversation(
     db.add(conv)
     await db.flush()
     await db.refresh(conv)
-    return ConversationRead.model_validate(conv)
+    return ConversationRead.model_validate({
+        "id": conv.id,
+        "user_id": conv.user_id,
+        "title": conv.title,
+        "model_used": conv.model_used,
+        "total_tokens": conv.total_tokens,
+        "is_archived": conv.is_archived,
+        "created_at": conv.created_at,
+        "updated_at": conv.updated_at,
+        "messages": [],
+    })
 
 
 @router.get(
