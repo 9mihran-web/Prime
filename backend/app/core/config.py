@@ -51,13 +51,13 @@ class Settings(BaseSettings):
     # "openai"  — always use OpenAI (cloud)
     # "auto"    — prefer Ollama, fall back to OpenAI when Ollama is down
     AI_PROVIDER: str = "ollama"
-    DEFAULT_MODEL: str = "llama3.2:3b"
+    DEFAULT_MODEL: str = "prime"
 
     # ------------------------------------------------------------------ #
     # Ollama (local models — no API key required)
     # ------------------------------------------------------------------ #
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.2:3b"
+    OLLAMA_MODEL: str = "prime"
     OLLAMA_EMBED_MODEL: str = "nomic-embed-text"
 
     # ------------------------------------------------------------------ #
