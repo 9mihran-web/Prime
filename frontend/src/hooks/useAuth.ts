@@ -24,6 +24,17 @@ function mapBackendUser(raw: Record<string, unknown>): User {
   }
 }
 
+// FastAPI can return detail as a string (409) or array of objects (422 validation)
+function extractErrorMessage(err: unknown, fallback: string): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  if (!detail) return fallback
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map((d: { msg?: string }) => d.msg ?? String(d)).join(', ')
+  }
+  return fallback
+}
+
 export function useAuth() {
   const store = useAuthStore()
 
@@ -48,10 +59,7 @@ export function useAuth() {
 
         return { success: true }
       } catch (err: unknown) {
-        const message =
-          (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-          'Login failed. Please check your credentials.'
-        return { success: false, error: message }
+        return { success: false, error: extractErrorMessage(err, 'Login failed. Please check your credentials.') }
       } finally {
         store.setLoading(false)
       }
@@ -80,10 +88,7 @@ export function useAuth() {
 
         return { success: true }
       } catch (err: unknown) {
-        const message =
-          (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-          'Registration failed. Please try again.'
-        return { success: false, error: message }
+        return { success: false, error: extractErrorMessage(err, 'Registration failed. Please try again.') }
       } finally {
         store.setLoading(false)
       }

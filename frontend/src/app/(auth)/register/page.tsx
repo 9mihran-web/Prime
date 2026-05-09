@@ -11,9 +11,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { isValidEmail } from '@/lib/utils'
 
 const PASSWORD_RULES = [
-  { label: 'At least 8 characters',  test: (p: string) => p.length >= 8 },
-  { label: 'Contains a number',       test: (p: string) => /\d/.test(p) },
-  { label: 'Contains a letter',       test: (p: string) => /[a-zA-Z]/.test(p) },
+  { label: 'At least 8 characters',       test: (p: string) => p.length >= 8 },
+  { label: 'Contains a number',            test: (p: string) => /\d/.test(p) },
+  { label: 'Contains an uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
 ]
 
 export default function RegisterPage() {
