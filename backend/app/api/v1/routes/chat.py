@@ -25,6 +25,7 @@ from app.schemas.chat import (
     StreamChunk,
 )
 from app.services.ai.model_router import model_router
+from app.services.web_search import format_search_context, needs_search, search_web
 
 logger = logging.getLogger(__name__)
 
@@ -221,10 +222,18 @@ async def send_message(
     # Build the full message history for the API call
     history = await _load_message_history(conv.id, db)
 
-    # Optionally prepend a system prompt
+    # Web search: inject fresh context when the message needs current info
+    search_context = ""
+    if needs_search(payload.message):
+        results = await search_web(payload.message)
+        search_context = format_search_context(results)
+
+    # Build messages list
     openai_messages = []
     if payload.system_prompt:
         openai_messages.append({"role": "system", "content": payload.system_prompt})
+    if search_context:
+        openai_messages.append({"role": "system", "content": search_context})
     openai_messages.extend(history)
 
     if payload.stream:
