@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Union
 from uuid import UUID
@@ -16,14 +18,18 @@ from app.core.config import settings
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _prehash(password: str) -> str:
+    # SHA-256 → base64 keeps input to bcrypt at 44 bytes, well under the 72-byte limit.
+    digest = hashlib.sha256(password.encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("ascii")
+
+
 def get_password_hash(password: str) -> str:
-    """Return a bcrypt hash of *password*."""
-    return _pwd_context.hash(password)
+    return _pwd_context.hash(_prehash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Return ``True`` if *plain_password* matches *hashed_password*."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    return _pwd_context.verify(_prehash(plain_password), hashed_password)
 
 
 # ---------------------------------------------------------------------------
