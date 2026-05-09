@@ -18,9 +18,9 @@ export interface Message {
 }
 
 export type ModelId =
-  | 'gpt-4o'
-  | 'gpt-4o-mini'
-  | 'claude-3-5-sonnet-20241022'
+  | 'llama3.2:3b'
+  | 'llama3.2:1b'
+  | 'prime'
 
 export interface ModelOption {
   id: ModelId
@@ -32,25 +32,25 @@ export interface ModelOption {
 
 export const MODEL_OPTIONS: ModelOption[] = [
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    description: 'Most capable, best for complex tasks',
+    id: 'llama3.2:3b',
+    name: 'Prime (Llama 3.2 3B)',
+    description: 'Local model — fast, private, no API key needed',
     maxTokens: 4096,
     contextWindow: 128000,
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    description: 'Fast and efficient for everyday tasks',
-    maxTokens: 16384,
+    id: 'llama3.2:1b',
+    name: 'Prime Lite (Llama 3.2 1B)',
+    description: 'Fastest local model, great for simple tasks',
+    maxTokens: 4096,
     contextWindow: 128000,
   },
   {
-    id: 'claude-3-5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Exceptional reasoning and writing',
-    maxTokens: 8192,
-    contextWindow: 200000,
+    id: 'prime',
+    name: 'Prime Custom',
+    description: 'Your fine-tuned Prime model',
+    maxTokens: 4096,
+    contextWindow: 128000,
   },
 ]
 

@@ -38,7 +38,7 @@ export const useChatStore = create<ChatState>()(
       messages:             [],
       isStreaming:          false,
       isLoadingMessages:    false,
-      selectedModel:        'gpt-4o',
+      selectedModel:        'llama3.2:3b',
 
       setConversations: (conversations) => set({ conversations: conversations ?? [] }),
 
