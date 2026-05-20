@@ -6,19 +6,46 @@ import { chat as chatApi, streamChatMessage } from '@/lib/api'
 import { generateId } from '@/lib/utils'
 import type { ModelId, Conversation, Message } from '@/types/chat'
 
-// Individual selectors to avoid re-creating callbacks on unrelated state changes
-const useSetConversations  = () => useChatStore((s) => s.setConversations)
-const useAddConversation   = () => useChatStore((s) => s.addConversation)
+// Individual selectors to prevent re-creating callbacks on unrelated state changes
+const useSetConversations   = () => useChatStore((s) => s.setConversations)
+const useAddConversation    = () => useChatStore((s) => s.addConversation)
 const useRemoveConversation = () => useChatStore((s) => s.removeConversation)
-const useSetActiveId       = () => useChatStore((s) => s.setActiveConversationId)
-const useSetMessages       = () => useChatStore((s) => s.setMessages)
-const useAddMessage        = () => useChatStore((s) => s.addMessage)
-const useRemoveMessage     = () => useChatStore((s) => s.removeMessage)
-const useAppendToMessage   = () => useChatStore((s) => s.appendToMessage)
-const useUpdateStatus      = () => useChatStore((s) => s.updateMessageStatus)
-const useSetStreaming       = () => useChatStore((s) => s.setStreaming)
+const useSetActiveId        = () => useChatStore((s) => s.setActiveConversationId)
+const useSetMessages        = () => useChatStore((s) => s.setMessages)
+const useAddMessage         = () => useChatStore((s) => s.addMessage)
+const useRemoveMessage      = () => useChatStore((s) => s.removeMessage)
+const useAppendToMessage    = () => useChatStore((s) => s.appendToMessage)
+const useUpdateStatus       = () => useChatStore((s) => s.updateMessageStatus)
+const useSetStreaming        = () => useChatStore((s) => s.setStreaming)
 const useSetLoadingMessages = () => useChatStore((s) => s.setLoadingMessages)
 const useUpdateLastMessage  = () => useChatStore((s) => s.updateConversationLastMessage)
+
+function mapConversation(c: Record<string, unknown>): Conversation {
+  return {
+    id:             String(c.id),
+    title:          String(c.title ?? 'New Conversation'),
+    model:          String(c.model_used ?? c.model ?? 'prime') as ModelId,
+    isArchived:     Boolean(c.is_archived ?? c.isArchived ?? false),
+    isPinned:       Boolean(c.is_pinned ?? c.isPinned ?? false),
+    messageCount:   Number(c.message_count ?? c.messageCount ?? 0),
+    userId:         String(c.user_id ?? c.userId ?? ''),
+    createdAt:      String(c.created_at ?? c.createdAt ?? new Date().toISOString()),
+    updatedAt:      String(c.updated_at ?? c.updatedAt ?? new Date().toISOString()),
+    lastMessage:    (c.last_message ?? c.lastMessage) as string | undefined,
+    lastMessageAt:  (c.last_message_at ?? c.lastMessageAt) as string | undefined,
+  }
+}
+
+function mapMessage(m: Record<string, unknown>, fallbackConversationId: string): Message {
+  return {
+    id:             String(m.id),
+    conversationId: String(m.conversation_id ?? m.conversationId ?? fallbackConversationId),
+    role:           (m.role as Message['role']) ?? 'assistant',
+    content:        String(m.content ?? ''),
+    status:         'sent',
+    createdAt:      String(m.created_at ?? m.createdAt ?? new Date().toISOString()),
+  }
+}
 
 export function useChat() {
   const conversations     = useChatStore((s) => s.conversations)
@@ -43,13 +70,13 @@ export function useChat() {
   const loadConversations = useCallback(async () => {
     try {
       const res = await chatApi.getConversations()
-      // Backend returns a plain array, not { conversations: [] }
-      const list: Conversation[] = Array.isArray(res.data)
-        ? res.data
-        : ((res.data as { conversations?: Conversation[] }).conversations ?? [])
-      setConversations(list)
+      const data = res.data as unknown
+      const raw: Record<string, unknown>[] = Array.isArray(data)
+        ? (data as Record<string, unknown>[])
+        : ((((data as Record<string, unknown>)?.conversations ?? []) as Record<string, unknown>[]))
+      setConversations(raw.map(mapConversation))
     } catch {
-      // Fail silently; user may have no conversations yet
+      // Fail silently
     }
   }, [setConversations])
 
@@ -59,11 +86,11 @@ export function useChat() {
       setLoadingMessages(true)
       try {
         const res = await chatApi.getMessages(conversationId)
-        // Backend returns ConversationRead with inline messages array
-        const data = res.data as { messages?: Message[] } | Message[]
-        const msgs: Message[] = Array.isArray(data)
-          ? data
-          : (data.messages ?? [])
+        const data = res.data as unknown
+        const rawMsgs: Record<string, unknown>[] = Array.isArray(data)
+          ? (data as Record<string, unknown>[])
+          : ((((data as Record<string, unknown>).messages ?? []) as Record<string, unknown>[]))
+        const msgs: Message[] = rawMsgs.map((m) => mapMessage(m, conversationId))
         setMessages(msgs)
       } catch {
         setMessages([])
@@ -78,7 +105,7 @@ export function useChat() {
     async (model: ModelId): Promise<Conversation | null> => {
       try {
         const res = await chatApi.createConversation(model)
-        const conv = res.data as Conversation
+        const conv = mapConversation(res.data as unknown as Record<string, unknown>)
         addConversation(conv)
         return conv
       } catch {
@@ -93,7 +120,7 @@ export function useChat() {
       try {
         await chatApi.deleteConversation(conversationId)
       } catch {
-        // Optimistic — remove regardless
+        // Optimistic remove
       }
       removeConversation(conversationId)
     },
@@ -125,16 +152,37 @@ export function useChat() {
       addMessage(aiMessage)
       setStreaming(true)
 
+      // Batch delta updates to ~30fps to reduce re-renders during streaming
+      let buffer = ''
+      let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+      function flush() {
+        if (buffer) {
+          appendToMessage(aiMessageId, buffer)
+          buffer = ''
+        }
+        flushTimer = null
+      }
+
       try {
         await streamChatMessage(
           { conversationId, content, model, stream: true },
-          (delta) => { appendToMessage(aiMessageId, delta) },
+          (delta) => {
+            buffer += delta
+            if (!flushTimer) {
+              flushTimer = setTimeout(flush, 32)
+            }
+          },
           () => {
+            if (flushTimer) { clearTimeout(flushTimer); flushTimer = null }
+            flush()
             updateStatus(aiMessageId, 'sent')
             setStreaming(false)
             updateLastMessage(conversationId, content)
           },
           (err) => {
+            if (flushTimer) { clearTimeout(flushTimer); flushTimer = null }
+            flush()
             console.error('Streaming error:', err)
             updateStatus(aiMessageId, 'error')
             appendToMessage(aiMessageId, '\n\n_An error occurred. Please try again._')
@@ -142,6 +190,8 @@ export function useChat() {
           }
         )
       } catch (err) {
+        if (flushTimer) { clearTimeout(flushTimer); flushTimer = null }
+        flush()
         console.error('sendMessage error:', err)
         updateStatus(aiMessageId, 'error')
         setStreaming(false)
@@ -161,7 +211,7 @@ export function useChat() {
       removeMessage(messageId)
       await sendMessage(
         userMsg.content,
-        (failedMsg.model ?? 'gpt-4o') as ModelId,
+        (failedMsg.model ?? 'prime') as ModelId,
         failedMsg.conversationId
       )
     },

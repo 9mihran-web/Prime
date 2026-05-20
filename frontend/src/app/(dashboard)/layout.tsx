@@ -50,7 +50,7 @@ export default function DashboardLayout({
       <div
         className={cn(
           'flex flex-col flex-1 min-w-0 transition-all duration-300',
-          sidebarOpen ? 'lg:ml-60' : 'lg:ml-16'
+          sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'
         )}
       >
         <TopBar />

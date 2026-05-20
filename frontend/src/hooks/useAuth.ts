@@ -60,7 +60,7 @@ export function useAuth() {
         storeTokens(tokens)
         setToken(tokens.accessToken)
         const meRes = await authApi.me()
-        setUser(mapBackendUser(meRes.data as Record<string, unknown>))
+        setUser(mapBackendUser(meRes.data as unknown as Record<string, unknown>))
         return { success: true }
       } catch (err: unknown) {
         return { success: false, error: extractErrorMessage(err, 'Login failed. Please check your credentials.') }
@@ -86,7 +86,7 @@ export function useAuth() {
         storeTokens(tokens)
         setToken(tokens.accessToken)
         const meRes = await authApi.me()
-        setUser(mapBackendUser(meRes.data as Record<string, unknown>))
+        setUser(mapBackendUser(meRes.data as unknown as Record<string, unknown>))
         return { success: true }
       } catch (err: unknown) {
         return { success: false, error: extractErrorMessage(err, 'Registration failed. Please try again.') }
@@ -112,7 +112,7 @@ export function useAuth() {
     setLoading(true)
     try {
       const meRes = await authApi.me()
-      setUser(mapBackendUser(meRes.data as Record<string, unknown>))
+      setUser(mapBackendUser(meRes.data as unknown as Record<string, unknown>))
     } catch {
       logoutStore()
     } finally {

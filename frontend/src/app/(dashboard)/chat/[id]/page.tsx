@@ -15,23 +15,22 @@ interface PageProps {
 }
 
 export default function ActiveChatPage({ params }: PageProps) {
-  const { id } = use(params)
+  const { id }       = use(params)
   const searchParams = useSearchParams()
   const initialQuery = searchParams.get('q')
 
   const { loadConversation, sendMessage, isLoadingMessages } = useChat()
-  const selectedModel = useChatStore((s) => s.selectedModel)
+  const selectedModel    = useChatStore((s) => s.selectedModel)
   const setSelectedModel = useChatStore((s) => s.setSelectedModel)
-  const activeId = useChatStore((s) => s.activeConversationId)
+  const activeId         = useChatStore((s) => s.activeConversationId)
 
   const sentInitialRef = useRef(false)
 
-  // Load conversation on mount
   useEffect(() => {
     loadConversation(id)
   }, [id, loadConversation])
 
-  // Send the initial query from URL params (new chat flow)
+  // Fire the initial query from URL params (new chat flow)
   useEffect(() => {
     if (
       initialQuery &&
@@ -60,7 +59,7 @@ export default function ActiveChatPage({ params }: PageProps) {
     <div className="flex flex-col h-full">
       <ChatWindow conversationId={id} />
 
-      <div className="px-4 pb-6 max-w-3xl mx-auto w-full">
+      <div className="px-4 pb-5 max-w-3xl mx-auto w-full shrink-0">
         <ChatInput
           onSend={handleSend}
           model={selectedModel}

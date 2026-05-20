@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { useEffect, useRef, useMemo } from 'react'
 import { MessageBubble } from './MessageBubble'
-import { TypingIndicator } from './TypingIndicator'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
 import { useChat } from '@/hooks/useChat'
@@ -13,65 +11,59 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ conversationId }: ChatWindowProps) {
-  const messages      = useChatStore((s) => s.messages)
-  const isStreaming   = useChatStore((s) => s.isStreaming)
-  const user          = useAuthStore((s) => s.user)
+  const allMessages = useChatStore((s) => s.messages)
+  const isStreaming = useChatStore((s) => s.isStreaming)
+  const user        = useAuthStore((s) => s.user)
   const { retryMessage } = useChat()
-  const bottomRef     = useRef<HTMLDivElement>(null)
-  const containerRef  = useRef<HTMLDivElement>(null)
+
+  const bottomRef           = useRef<HTMLDivElement>(null)
+  const containerRef        = useRef<HTMLDivElement>(null)
   const shouldAutoScrollRef = useRef(true)
 
-  // Auto-scroll logic
+  const messages = useMemo(
+    () => allMessages.filter((m) => m.conversationId === conversationId),
+    [allMessages, conversationId]
+  )
+
+  // Track whether user is scrolled near the bottom
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
+    const el = containerRef.current
+    if (!el) return
     function onScroll() {
-      const { scrollTop, scrollHeight, clientHeight } = container!
-      shouldAutoScrollRef.current = scrollHeight - scrollTop - clientHeight < 120
+      const { scrollTop, scrollHeight, clientHeight } = el!
+      shouldAutoScrollRef.current = scrollHeight - scrollTop - clientHeight < 150
     }
-
-    container.addEventListener('scroll', onScroll, { passive: true })
-    return () => container.removeEventListener('scroll', onScroll)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Auto-scroll when messages or streaming state changes
   useEffect(() => {
     if (shouldAutoScrollRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, isStreaming])
+  }, [messages.length, isStreaming])
 
-  // On mount, scroll instantly
+  // Instant scroll on conversation switch
   useEffect(() => {
+    shouldAutoScrollRef.current = true
     bottomRef.current?.scrollIntoView({ behavior: 'instant' })
   }, [conversationId])
 
-  const conversationMessages = messages.filter(
-    (m) => m.conversationId === conversationId
-  )
-
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-y-auto py-6 space-y-4"
-    >
-      {conversationMessages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          userName={user?.displayName ?? user?.username}
-          userAvatar={user?.avatarUrl}
-          onRetry={message.status === 'error' ? retryMessage : undefined}
-        />
-      ))}
-
-      <AnimatePresence>
-        {isStreaming && conversationMessages[conversationMessages.length - 1]?.role !== 'assistant' && (
-          <TypingIndicator />
-        )}
-      </AnimatePresence>
-
-      <div ref={bottomRef} className="h-4" />
+    <div ref={containerRef} className="flex-1 overflow-y-auto">
+      <div className="max-w-3xl mx-auto pt-6 pb-2">
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            userName={user?.displayName ?? user?.username}
+            userAvatar={user?.avatarUrl}
+            onRetry={message.status === 'error' ? retryMessage : undefined}
+          />
+        ))}
+        <div ref={bottomRef} className="h-6" />
+      </div>
     </div>
   )
 }
