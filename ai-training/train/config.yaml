@@ -19,12 +19,12 @@ lora_dropout: 0.05
 
 # Training
 batch_size: 2
-iters: 600
+iters: 2000
 val_batches: 10
 learning_rate: 1e-5
-steps_per_report: 20
-steps_per_eval: 100
-save_every: 200
+steps_per_report: 50
+steps_per_eval: 200
+save_every: 400
 adapter_path: train/adapters
 max_seq_length: 2048
 
@@ -32,5 +32,5 @@ max_seq_length: 2048
 lr_schedule:
   name: cosine_decay
   warmup: 50
-  arguments: [1e-5, 600, 1e-6]
+  arguments: [1e-5, 2000, 1e-6]
 
