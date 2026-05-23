@@ -36,7 +36,6 @@ mlx_lm fuse \
   --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
   --adapter-path train/adapters \
   --save-path models/prime-8b \
-  --dequantize \
   --export-gguf \
   --gguf-path "$GGUF_PATH"
 
