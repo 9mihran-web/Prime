@@ -68,7 +68,7 @@ pip install -q gguf transformers sentencepiece protobuf 2>/dev/null || true
 python llama.cpp/convert_hf_to_gguf.py \
   models/prime-8b \
   --outfile "$GGUF_PATH" \
-  --outtype q4_k_m
+  --outtype q8_0
 
 echo "✓ GGUF → $GGUF_PATH ($(du -sh "$GGUF_PATH" | cut -f1))"
 
