@@ -25,43 +25,26 @@ if [[ -z "$(ls train/adapters/*.safetensors 2>/dev/null)" ]]; then
 fi
 echo "✓ Adapters found: $(ls train/adapters/*.safetensors | wc -l | tr -d ' ') files"
 
-# ── 3. Fuse LoRA adapters with base model ─────────────────────────────────────
+# ── 3. Fuse LoRA adapters + export GGUF in one step ──────────────────────────
 echo ""
-echo "[1/4] Fusing LoRA adapters into base model..."
-echo "      (takes 5-10 min, uses ~16GB disk)"
+echo "[1/2] Fusing LoRA adapters and exporting GGUF..."
+echo "      (takes 10-20 min, needs ~16GB disk)"
 mkdir -p models
+GGUF_PATH="$SCRIPT_DIR/prime-8b-q4.gguf"
 
-python -m mlx_lm.fuse \
+mlx_lm fuse \
   --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
   --adapter-path train/adapters \
   --save-path models/prime-8b \
-  --de-quantize
-echo "✓ Merged model → models/prime-8b"
+  --dequantize \
+  --export-gguf \
+  --gguf-path "$GGUF_PATH"
 
-# ── 4. Clone llama.cpp if needed ──────────────────────────────────────────────
-echo ""
-echo "[2/4] Setting up llama.cpp for GGUF conversion..."
-if [[ ! -d "llama.cpp" ]]; then
-  git clone --depth=1 https://github.com/ggml-org/llama.cpp.git llama.cpp
-fi
-pip install -q -r llama.cpp/requirements.txt 2>/dev/null || \
-  pip install -q gguf transformers huggingface_hub numpy
-echo "✓ llama.cpp ready"
-
-# ── 5. Convert to GGUF ────────────────────────────────────────────────────────
-echo ""
-echo "[3/4] Converting to GGUF (Q4_K_M quantization)..."
-GGUF_PATH="$SCRIPT_DIR/prime-8b-q4.gguf"
-
-python llama.cpp/convert_hf_to_gguf.py \
-  models/prime-8b \
-  --outfile "$GGUF_PATH" \
-  --outtype q4_k_m
 echo "✓ GGUF saved → $GGUF_PATH ($(du -sh "$GGUF_PATH" | cut -f1))"
 
-# ── 6. Register with Ollama ───────────────────────────────────────────────────
+# ── 4. Register with Ollama ───────────────────────────────────────────────────
 echo ""
-echo "[4/4] Registering Prime in Ollama..."
+echo "[2/2] Registering Prime in Ollama..."
 cd "$SCRIPT_DIR"
 ollama create prime -f Modelfile
 
