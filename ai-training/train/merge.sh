@@ -37,13 +37,13 @@ mkdir -p models
 
 # Fuse adapters. --de-quantize converts from 4-bit back to float16 for clean fusion.
 python -m mlx_lm.fuse \
-  --model mlx-community/Llama-3.2-3B-Instruct-4bit \
+  --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
   --adapter-path train/adapters \
-  --save-path models/prime-3b \
+  --save-path models/prime-8b \
   --de-quantize
 
 echo ""
-echo "  Merged model saved to: models/prime-3b"
+echo "  Merged model saved to: models/prime-8b"
 echo ""
 
 echo "[2/3] Re-quantizing merged model to 4-bit (for Ollama compatibility)..."
@@ -54,12 +54,12 @@ import sys
 try:
     from mlx_lm import convert
     convert(
-        hf_path="models/prime-3b",
-        mlx_path="models/prime-3b-q4",
+        hf_path="models/prime-8b",
+        mlx_path="models/prime-8b-q4",
         quantize=True,
         q_bits=4,
     )
-    print("  Quantized model saved to: models/prime-3b-q4")
+    print("  Quantized model saved to: models/prime-8b-q4")
 except ImportError as e:
     print(f"ERROR: {e}")
     print("Ensure mlx-lm is installed: pip install mlx-lm>=0.19.0")
@@ -77,8 +77,8 @@ if command -v python3 &>/dev/null && python3 -c "import gguf" 2>/dev/null; then
 import subprocess, sys, os
 from pathlib import Path
 
-model_dir = Path("models/prime-3b-q4")
-output_gguf = Path("models/prime-3b-q4/prime-3b-q4.gguf")
+model_dir = Path("models/prime-8b-q4")
+output_gguf = Path("models/prime-8b-q4/prime-3b-q4.gguf")
 
 # Try mlx-lm built-in GGUF export first
 try:
@@ -97,7 +97,7 @@ except (ImportError, AttributeError):
         print("  Manual GGUF conversion instructions:")
         print("    git clone https://github.com/ggml-org/llama.cpp")
         print("    pip install -r llama.cpp/requirements.txt")
-        print(f"    python llama.cpp/convert_hf_to_gguf.py models/prime-3b-q4 --outfile {output_gguf} --outtype q4_0")
+        print(f"    python llama.cpp/convert_hf_to_gguf.py models/prime-8b-q4 --outfile {output_gguf} --outtype q4_0")
     else:
         print(f"  GGUF saved to: {output_gguf}")
 PYEOF
@@ -107,8 +107,8 @@ else
   echo "  To convert manually:"
   echo "    git clone https://github.com/ggml-org/llama.cpp"
   echo "    pip install -r llama.cpp/requirements.txt"
-  echo "    python llama.cpp/convert_hf_to_gguf.py models/prime-3b-q4 \\"
-  echo "           --outfile models/prime-3b-q4/prime-3b-q4.gguf --outtype q4_0"
+  echo "    python llama.cpp/convert_hf_to_gguf.py models/prime-8b-q4 \\"
+  echo "           --outfile models/prime-8b-q4/prime-3b-q4.gguf --outtype q4_0"
 fi
 
 echo ""
@@ -117,9 +117,9 @@ echo "  Merge complete!"
 echo "========================================================"
 echo ""
 echo "Model artifacts:"
-if [[ -d "models/prime-3b-q4" ]]; then
-  du -sh models/prime-3b-q4/ 2>/dev/null
-  ls models/prime-3b-q4/ 2>/dev/null
+if [[ -d "models/prime-8b-q4" ]]; then
+  du -sh models/prime-8b-q4/ 2>/dev/null
+  ls models/prime-8b-q4/ 2>/dev/null
 fi
 echo ""
 echo "Next step — register with Ollama:"

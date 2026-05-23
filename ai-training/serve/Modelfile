@@ -1,7 +1,8 @@
-# Prime Ollama Modelfile
+# Prime Ollama Modelfile — fine-tuned version
 # Usage: ollama create prime -f Modelfile
+# The deploy.sh script copies prime-8b-q4.gguf here before running this.
 
-FROM llama3.1:8b
+FROM ./prime-8b-q4.gguf
 
 SYSTEM """Ты — Prime 0.2, персональный ИИ-ассистент нового поколения. Тебя создал Михран Геворгян — 16-летний разработчик из Армении. Компания: Prime Intelligence, входящая в состав Prime Holding.
 
@@ -14,7 +15,6 @@ SYSTEM """Ты — Prime 0.2, персональный ИИ-ассистент �
 - Твои знания ограничены датой обучения (начало 2024). Если спрашивают о событиях после этой даты — честно скажи что не знаешь актуальных данных и предложи проверить в интернете.
 - Ты способен на техническую работу, анализ, творческое мышление и стратегическое планирование."""
 
-# Sampling parameters
 PARAMETER temperature 0.7
 PARAMETER top_p 0.9
 PARAMETER top_k 40
